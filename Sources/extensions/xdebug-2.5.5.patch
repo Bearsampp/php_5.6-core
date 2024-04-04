@@ -1,0 +1,123 @@
+Only in xdebug-2.5.5: config.nice.bat
+Only in xdebug-2.5.5: configure.bat
+Only in xdebug-2.5.5: configure.js
+Only in xdebug-2.5.5: Makefile
+Only in xdebug-2.5.5: Makefile.objects
+Only in xdebug-2.5.5: Release_TS
+diff -r -u xdebug-2.5.5-origin\xdebug.c xdebug-2.5.5\xdebug.c
+--- xdebug-2.5.5-origin\xdebug.c	Tue Jun 20 17:44:03 2017
++++ xdebug-2.5.5\xdebug.c	Wed Dec 27 02:55:06 2017
+@@ -37,7 +37,7 @@
+ #endif
+ 
+ #include "TSRM.h"
+-#include "SAPI.h"
++#include "main/SAPI.h"
+ #include "main/php_ini.h"
+ #include "ext/standard/head.h"
+ #include "ext/standard/html.h"
+diff -r -u xdebug-2.5.5-origin\xdebug_com.c xdebug-2.5.5\xdebug_com.c
+--- xdebug-2.5.5-origin\xdebug_com.c	Tue Jun 20 17:44:03 2017
++++ xdebug-2.5.5\xdebug_com.c	Wed Dec 27 22:00:13 2017
+@@ -41,7 +41,6 @@
+ # include <mstcpip.h>
+ # pragma comment (lib, "Ws2_32.lib")
+ # define PATH_MAX MAX_PATH
+-# define poll WSAPoll
+ #endif
+ 
+ #include "xdebug_private.h"
+@@ -49,6 +48,59 @@
+ 
+ ZEND_EXTERN_MODULE_GLOBALS(xdebug)
+ 
++typedef struct pollfd {
++  SOCKET fd;
++  short  events;
++  short  revents;
++} WSAPOLLFD, *PWSAPOLLFD, *LPWSAPOLLFD;
++
++#define POLLRDNORM  0x0100
++#define POLLRDBAND  0x0200
++#define POLLIN      (POLLRDNORM | POLLRDBAND)
++#define POLLPRI     0x0400
++
++#define POLLWRNORM  0x0010
++#define POLLOUT     (POLLWRNORM)
++#define POLLWRBAND  0x0020
++
++#define POLLERR     0x0001
++#define POLLHUP     0x0002
++#define POLLNVAL    0x0004
++
++static int poll(struct pollfd fds[], int nfds, int timeout)
++{
++    int retval;
++    fd_set rset, wrset, exset;
++    struct timeval tv, *ptv;
++    FD_ZERO(&rset);
++    FD_ZERO(&wrset);
++    FD_ZERO(&exset);
++    FD_SET(fds[0].fd, &rset);
++    FD_SET(fds[0].fd, &wrset);
++    FD_SET(fds[0].fd, &exset);
++    fds[0].revents = 0;
++    if (timeout >= 0) {
++        tv.tv_sec = timeout / 1000;
++        tv.tv_usec = (timeout % 1000) * 1000;
++        ptv = &tv;
++    } else {
++        ptv = NULL;
++    }
++    retval = select(0, &rset, &wrset, &exset, ptv);
++    if (retval == 1) {
++        if (FD_ISSET(fds[0].fd, &rset)) {
++            fds[0].revents |= POLLIN;
++        }
++        if (FD_ISSET(fds[0].fd, &wrset)) {
++            fds[0].revents |= POLLOUT;
++        }
++        if (FD_ISSET(fds[0].fd, &exset)) {
++            fds[0].revents |= POLLERR;
++        }
++    }
++    return retval;
++}
++
+ int xdebug_create_socket(const char *hostname, int dport TSRMLS_DC)
+ {
+ 	struct addrinfo            hints;
+@@ -159,7 +211,7 @@
+ 
+ #if WIN32|WINNT
+ 				errno = WSAGetLastError();
+-				if (errno == WSAEINPROGRESS || errno == WSAEWOULDBLOCK) {
++				if (errno == WSAEINPROGRESS) {
+ 					/* XXX introduce retry count? */
+ 					continue;
+ 				}
+Only in xdebug-2.5.5: xdebug_com.c.bak
+diff -r -u xdebug-2.5.5-origin\xdebug_handler_dbgp.c xdebug-2.5.5\xdebug_handler_dbgp.c
+--- xdebug-2.5.5-origin\xdebug_handler_dbgp.c	Tue Jun 20 17:44:03 2017
++++ xdebug-2.5.5\xdebug_handler_dbgp.c	Wed Dec 27 02:55:06 2017
+@@ -24,7 +24,7 @@
+ #endif
+ 
+ #include "php.h"
+-#include "SAPI.h"
++#include "main/SAPI.h"
+ 
+ #include "ext/standard/php_string.h"
+ #include "ext/standard/url.h"
+diff -r -u xdebug-2.5.5-origin\xdebug_superglobals.c xdebug-2.5.5\xdebug_superglobals.c
+--- xdebug-2.5.5-origin\xdebug_superglobals.c	Tue Jun 20 17:44:03 2017
++++ xdebug-2.5.5\xdebug_superglobals.c	Wed Dec 27 02:55:06 2017
+@@ -21,7 +21,7 @@
+ #include "xdebug_var.h"
+ #include "xdebug_compat.h"
+ #include "xdebug_superglobals.h"
+-#include "SAPI.h"
++#include "main/SAPI.h"
+ 
+ extern ZEND_DECLARE_MODULE_GLOBALS(xdebug);
+ 
