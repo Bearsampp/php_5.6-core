@@ -7,3 +7,5 @@ You'll then need to cd to this repo from the terminal.
 * Modern winbinder repo is https://github.com/wagy/WinBinder?tab=readme-ov-file
 * ```sources```  is a clone of the winbinder for php 5.6.24 repo.  I've created "our" working build stuff in the root so the ```sources``` is an archival folder so if the source repo is lost we have a backup.
   
+win32ps = https://pecl.php.net/package/win32ps/1.0.1/windows
+winbinder = 
