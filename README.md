@@ -1,5 +1,6 @@
-# This repo is for winbinder vc11 ( php 5.6 ) only!!!!
+# This repo is for vc11 php 5.6 only!!!!
 
+This will contain all sources and instructions we can find in maintaining the php lib used in Bearsampp core.
 You have to use ```command prompt``` in the search box which opens a terminal in the visual studio 11 path.
 You'll then need to cd to this repo from the terminal.
 
